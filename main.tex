@@ -1,0 +1,73 @@
+\documentclass[MSc]{ulthese} % https://gitlab.com/vigou3/ulthese/
+
+\usepackage{amsmath}
+\usepackage{icomma}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{amssymb, amsmath, amsthm}
+\usepackage{caption}
+\usepackage{pgfplotstable}
+\usepackage{pgffor}
+\usepackage{subcaption}
+\pgfplotsset{compat=1.18}
+\usepackage{pgfplots}
+\usepackage[T1]{fontenc}
+\usepackage{lipsum}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+
+\usepackage[unicode, bookmarks=false]{hyperref}
+
+
+\theoremstyle{definition}
+
+\newtheorem{theorem}{Théorème}
+\newtheorem{lemma}[theorem]{Lemme}
+\newtheorem{corollary}[theorem]{Corollaire}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{definition}{Définition}
+\newtheorem{example}[theorem]{Exemple}
+\newtheorem{remark}{Remarque}
+\newtheorem{notation}[theorem]{Notation}
+
+
+\titre{L'effet de l'arsenic aéroporté PM2.5 sur les maladies respiratoires chroniques : une analyse des données provenant des États-Unis}
+\auteur{José Manuel Rodr\'iguez Caballero}
+\programme{Maîtrise en Statistiques}
+\direction{M'Hamed Lajmi Lakhal Chaieb}
+\codirection{Karim Barigou}
+\annee{2024}
+
+\begin{document}
+
+\frontmatter                    % pages liminaires
+
+\frontispice                    % production de la page frontispice
+
+\include{resume}                % résumé français
+
+\include{abstract}              % résumé anglais
+
+\cleardoublepage
+
+\tableofcontents                % production de la TdM
+\cleardoublepage
+
+%\listoftables                   % production de la liste des tableaux
+%\cleardoublepage
+
+%\listoffigures                  % production de la liste des figures
+%\cleardoublepage
+
+\mainmatter                     % corps du document
+
+\include{stateart}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+
+\end{document}

@@ -1,0 +1,141 @@
+\chapter{\'Etat de l'Art}
+\label{ch:stateart}
+
+\section{Introduction et importance de la problématique}
+La pollution de l’air est reconnue depuis plusieurs décennies comme un enjeu majeur de santé publique. Elle est associée à un large éventail d’effets néfastes sur la santé, dont une proportion importante de pathologies respiratoires chroniques (bronchites chroniques, asthme, cancer du poumon, etc.) \citep{Bang2015,Donaldson2010,Mazurek2017}. Les maladies respiratoires liées à l’exposition chronique ou aiguë à des polluants atmosphériques constituent en effet un défi épidémiologique et socio-économique, car elles mobilisent des ressources médicales importantes et engendrent des pertes de productivité.
+
+Les études épidémiologiques mettent en évidence l’existence d’une corrélation robuste entre l’exposition à divers polluants de l’air (particules fines PM\textsubscript{2.5} et PM\textsubscript{10}, gaz, fibres, etc.) et la survenue ou l’aggravation de maladies respiratoires \citep{Cho2011,Gomes2014}. Au-delà de la corrélation, l’établissement d’un lien de causalité exige une modélisation statistique et mécanistique précise, prenant en compte la dynamique d’exposition, les mécanismes biologiques sous-jacents et la présence de facteurs confondants (âge, statut socio-économique, co-expositions, etc.).
+
+Parmi les travaux de grande ampleur, le \emph{National Morbidity, Mortality, and Air Pollution Study (NMMAPS)} illustre l’importance des méthodes novatrices, de leur implémentation dans \textsf{R}, et des outils de recherche reproductible pour produire des résultats solides \citep{DominiciMcDermottDaniels2003,SametDominiciZeger2000,SametZegerDominici2000,SametDominiciCurriero2000,DominiciSametZeger2000,BellMcDermottZeger2004,PengDominiciPastorBarriuso2005,DominiciPengZeger2007}. Plus généralement, l’épidémiologie de la pollution atmosphérique recourt à quatre principaux types de plans d’étude :
+
+\begin{enumerate}
+	\item les \emph{études temporelles} (\emph{time series} dites ``écologiques"),
+	\item les études de type \emph{case-crossover},
+	\item les études de panel,
+	\item les études de cohorte.
+\end{enumerate}
+
+Nous présentons ci-dessous ces designs, leurs modèles statistiques habituels, ainsi que quelques exemples d’applications.
+
+
+\subsection{Études temporelles (\emph{time series studies})}
+Les \emph{études temporelles} relient les expositions et les issues de santé au cours du temps en exploitant des données agrégées au plan quotidien (p.~ex. nombre de décès ou d’hospitalisations) et des niveaux de pollution journaliers mesurés par des stations fixes \citep{BellSametDominici2004}. Ces travaux s’appuient généralement sur des modèles de régression, de type \emph{Generalized Linear Models (GLM)} ou \emph{Generalized Additive Models (GAM)}, afin d’estimer l’effet de la pollution sur la mortalité ou la morbidité tout en prenant en compte les fluctuations lentes (saisonnalité, tendance à long terme) via l’utilisation de fonctions de lissage (p.~ex. splines cubiques ou loess) \citep{McCullaghNelder1989,HastieTibshirani1990}.
+
+Le \emph{NMMAPS} constitue la plus vaste étude de ce type à ce jour \citep{DominiciMcDermottDaniels2003,SametDominiciZeger2000,SametZegerDominici2000,SametDominiciCurriero2000,DominiciPengZeger2007,BellMcDermottZeger2004,PengDominiciPastorBarriuso2005,DominiciSametZeger2000}. Contrairement à la plupart des études temporelles antérieures, souvent monocentriques, le \emph{NMMAPS} inclut des données de dizaines de villes américaines et fournit des estimations spécifiques à chaque localité, à l’échelle régionale et nationale, notamment pour les particules fines (PM\textsubscript{10}) et la mortalité. Des modèles hiérarchiques (``multiniveaux'') y consolident les estimations issues de différentes localités \citep{DominiciSametZeger2000}.
+
+\subsection{Études de type \emph{case-crossover}}
+La conception \emph{case-crossover} \citep{Maclure1991,Jaakkola2003,MaclureMittleman2000} a été développée pour étudier des effets aigus et transitoires d’expositions intermittentes \citep{BreslowDay1980,Schlesselman1994}. Chaque individu qui développe l’événement (le ``cas'') sert de son propre témoin (``contrôle''), ce qui permet de diminuer l’impact des variables de confusion invariantes dans le temps (âge, sexe, tabagisme, etc.). Dans les études de pollution atmosphérique, ce design se révèle particulièrement adapté lorsque l’exposition présente de fortes variations journalières et que l’issue de santé (par exemple, une crise d’asthme) est aiguë \citep{MaclureMittleman2000,Jaakkola2003}.
+
+Deux biais majeurs ont été identifiés : 
+
+\begin{enumerate}
+	\item la présence de tendance à long terme et de saisonnalité dans les concentrations de polluants, qui viole l’hypothèse de stationnarité de la série temporelle \citep{Navidi1998,BatesonSchwartz1999,LumleyLevy2000,BatesonSchwartz2001,LevyLumleySheppard2001},
+	\item l’``overlap bias'' (recouvrement des périodes de référence) \citep{AustinFlandersRothman1989,LumleyLevy2000,JanesSheppardLumley2005a,JanesSheppardLumley2005b}. 
+\end{enumerate}
+
+Malgré cela, plusieurs études monocentriques et multicentriques ont mis en œuvre cette approche \citep{SchwartzLee1999,NeasSchwartzDockery1999,PetersDockeryMuller2001,LevySheppardCheckoway2001,D'IppolitiForastiereAncona2003,SymonsWangGuallar2006,ZanobettiSchwartz2005,BarnettWilliamsSchwartz2005,BarnettWilliamsSchwartz2006,MedinaRamónZanobetti2006}.
+
+Par exemple, Levy et al. \citep{LevySheppardCheckoway2001} n’ont pas observé d’effet significatif d’une hausse à court terme des particules PM sur le risque d’arrêt cardiaque soudain chez des sujets sans antécédent cardiovasculaire, tandis que Peters et al. \citep{PetersKlotzHeier2004} ont mis en évidence un lien entre la pollution liée au trafic et la survenue d’infarctus du myocarde chez des sujets à risque.
+
+\subsection{Études de panel}
+Les \emph{études de panel} consistent à suivre un même groupe d’individus pendant une période de temps, en mesurant régulièrement l’exposition et l’issue de santé \citep{PetersAvolGauderman1999,PetersAvolNavidi1999,GaudermanMcConnellGilliland2000}. Elles sont adaptées à l’étude d’effets aigus dans des sous-populations susceptibles (enfants, personnes âgées, patients atteints de BPCO, etc.). Les mesures de santé peuvent être répétées (p.~ex. plusieurs mesures de la fonction respiratoire) et l’exposition peut être évaluée via des capteurs individuels ou des stations fixes. L’un des exemples les plus connus est la \emph{Children’s Health Study} en Californie du Sud \citep{PetersAvolNavidi1999,PetersAvolGauderman1999,GaudermanMcConnellGilliland2000}, qui a utilisé des modèles mixtes (\emph{linear mixed models}) pour mettre en évidence un lien entre l’exposition chronique aux particules fines, au NO\textsubscript{2} et la réduction de la croissance pulmonaire chez l’enfant \citep{GaudermanMcConnellGilliland2000}.
+
+\subsection{Études de cohorte}
+Les \emph{études de cohorte} \citep{BellSametDominici2004} évaluent l’impact d’une exposition chronique ou cumulée sur la santé (p.~ex. la mortalité à long terme). Elles peuvent être prospectives ou rétrospectives. Les cohortes multicentriques, couvrant plusieurs zones géographiques, permettent de mieux capturer la variabilité d’exposition mais génèrent davantage de facteurs de confusion potentiels (socio-économiques, culturels, etc.). L’approche statistique standard consiste alors à utiliser des modèles de survie, notamment le \emph{modèle de Cox}.
+
+Le ``Harvard Six Cities Study'' et l’``American Cancer Society (ACS) Study'' illustrent ces approches \citep{DockeryPopeXu1993,PopeThunNamboodiri1995,Pope2007}. Dans la première, un échantillon de plus de 8000 adultes de six villes américaines a été suivi pendant 14 à 16 ans, montrant une augmentation du risque de mortalité liée à l’exposition aux particules fines \citep{DockeryPopeXu1993}. L’ACS Study, couvrant 151 zones métropolitaines, a confirmé cette association et suggéré un risque accru de mortalité avec l’élévation des particules fines \citep{PopeThunNamboodiri1995}. Des réanalyses ultérieures, intégrant de nouvelles covariables spatiales et des modèles d’autocorrélation spatiale, corroborent l’effet délétère à long terme de la pollution \citep{LadenSchwartzSpeizerDockery2006,KrewskiJerrettPope2009,Pope2007}.
+
+
+
+\section{Comparaison des plans d’étude}
+Le choix d’un design d’étude dépend étroitement du type d’effet recherché (aigu vs. chronique), de la disponibilité des données, du type de population et de l’issue de santé \citep{Vedal1996}. Les études de panel, de cohorte et de type \emph{case-crossover} permettent de mieux prendre en compte les facteurs individuels potentiellement modificateurs de l’effet, tandis que les \emph{time series studies} s’appuient sur des données agrégées \citep{WakefieldSalway2001}. En résumé :
+\begin{itemize}
+	\item \textbf{Effets aigus :} Les études \emph{time series}, \emph{case-crossover} et \emph{de panel} sont adéquates pour détecter l’influence de variations journalières de la pollution.
+	\item \textbf{Effets chroniques :} Les études de cohorte, plus coûteuses, permettent d’évaluer l’effet d’une exposition cumulative.
+	\item \textbf{Modélisation de la tendance et de la saisonnalité :} Les \emph{time series studies} intègrent ces facteurs via des fonctions de lissage dans les GLM/GAM. Les \emph{case-crossover} les contrôlent par conception (périodes de référence).
+	\item \textbf{Prise en compte des caractéristiques individuelles :} Les \emph{case-crossover}, \emph{études de panel} et \emph{de cohorte} intègrent plus facilement des covariables individuelles.
+\end{itemize}
+Aucun plan d’étude n’est donc universellement supérieur : ils sont complémentaires en fonction des questions posées.
+
+\section{Comportement non linéaire de la relation dose-réponse}
+\label{sec:NonLinearDoseResponse}
+Selon Louis Anthony Cox Jr, la relation entre l’exposition à un polluant et le risque de développer une pathologie respiratoire ne se limite pas à un simple modèle linéaire \citep{cox2021quantitative}. Divers processus biologiques (activation de l’inflammasome, saturation des voies de clairance, etc.) induisent des réponses non linéaires, voire des effets de seuil. Dans de nombreuses études, les particules fines (PM\textsubscript{2.5} et PM\textsubscript{10}), les gaz et les fibres sont associées à des dommages respiratoires \citep{Bang2015,Donaldson2010,Mazurek2017}.
+
+\subsection{Limites des approches linéaires sans seuil (LNT)}
+Les modèles de type linéaire sans seuil (LNT) ont longtemps occupé une place centrale, en particulier pour leur simplicité et leur caractère ``conservateur'' \citep{Belkebir2011,Simmons2005}. Cependant, plusieurs réserves s’imposent :
+\begin{itemize}
+	\item \textbf{Saturation des mécanismes de clairance :} Au-delà d’un certain niveau d’exposition, les macrophages alvéolaires peuvent être débordés, entraînant une inflammation chronique \citep{Tran2001,DeStefano2017}.
+	\item \textbf{Seuils biologiques :} L’activation de l’inflammasome NLRP3 survient dès qu’un niveau critique d’agression cellulaire est franchi \citep{Groslambert2018,Sayan2016}.
+	\item \textbf{Rôle des pics d’exposition :} Les expositions brèves mais intenses peuvent avoir un effet plus marqué qu’une même dose cumulée plus étalée \citep{Cox2019}.
+\end{itemize}
+
+
+\section{De l’épidémiologie à la pharmacocinétique}
+\subsection{Modèles pharmacocinétiques et pharmacodynamiques (PBPK/PD)}
+Les modèles PBPK (\emph{Physiologically Based Pharmacokinetic}) et PD (\emph{Pharmacodynamic}) décrivent la distribution d’un composé et ses effets biologiques dans l’organisme. Appliqués à la toxicologie de la silice ou de l’amiante, ils soulignent le caractère crucial de la dynamique temporelle de l’exposition \citep{Tran2001,DeStefano2017} :
+\begin{itemize}
+	\item \textbf{Silice cristalline (RCS) :} \citet{Tran2001} identifient un plateau lorsque la clairance atteint un équilibre avec l’accumulation. Au-delà, la réponse inflammatoire devient chronique.
+	\item \textbf{Amiante :} \citet{DeStefano2017} suggèrent qu’à dose cumulée identique, des pics d’exposition plus prononcés provoquent des dépôts de fibres supérieurs à ceux observés lors d’une exposition plus uniforme.
+\end{itemize}
+Ces résultats illustrent l’importance de modéliser la pharmacocinétique et la pharmacodynamique pour mieux évaluer le risque.
+
+\subsection{Modèles mécanistiques de l’inflammation}
+Le rôle de l’inflammasome NLRP3 dans l’inflammation persistante est de plus en plus documenté \citep{Donaldson2010,Sayan2016}. Ce complexe protéique agit comme un ``seuil biologique'' :
+\begin{itemize}
+	\item \textbf{Comportement tout ou rien :} L’assemblage du NLRP3 dépend de signaux multiples et d’une quantité critique de particules \citep{Groslambert2018}.
+	\item \textbf{Impact sur la réglementation :} Des pics d’exposition brefs mais intenses peuvent suffire à initier une inflammation auto-entretenue, imposant de repenser les normes sanitaires pour prendre en compte ces épisodes \citep{Cox2019}.
+\end{itemize}
+
+\section{Applications à la pollution de l’air ambiant et enjeux de santé publique}
+Au-delà des milieux professionnels, la pollution urbaine (trafic routier, industrie, chauffage) contribue à l’augmentation des admissions hospitalières pour pathologies respiratoires \citep{Cho2011,Gomes2014}. Les premières approches statistiques étaient principalement basées sur des modèles de séries temporelles liant les variations journalières de la pollution à la mortalité ou aux hospitalisations \citep{Kim2003,Cox1996}. Cependant, des recherches plus récentes insistent sur l’importance de capturer la dynamique fine de l’exposition et le rôle déterminant des pics \citep{Gottschalk2016,Sayan2016}.
+
+\section{Critique de la modélisation par régression}
+\label{sec:RegressionCriticism}
+Dans ses travaux, Louis Anthony Cox Jr souligne les limites des modèles de régression ``réduits'' (linéaires ou logistiques) pour établir un lien de causalité entre la pollution et les maladies respiratoires \citep{cox2021quantitative}. La présence de variables confondantes (facteurs socio-économiques, co-expositions, etc.) et de corrélations fallacieuses (liens dits \emph{spurious}) fragilise la validité des conclusions \citep{Cui2003,Sneeringer2009,Selvin1984}.
+
+\subsection{Modèles linéaires, logistiques et spatio-temporels}
+Si les modèles linéaires ou logistiques sont simples et largement utilisés \citep{Cui2003}, ils présentent plusieurs inconvénients \citep{Fewell2007,Jacobs1979,Christenfeld2004,Chen2006} :
+\begin{itemize}
+	\item \textbf{Manque de modélisation causale :} La chaîne complète (émission $\to$ transport $\to$ dose interne $\to$ effet) reste souvent implicite.
+	\item \textbf{Dépendance au choix des covariables :} L’omission ou l’ajout de variables peut modifier la taille (voire le signe) de l’effet de la pollution \citep{Sneeringer2009}.
+	\item \textbf{Risques de ``régression fallacieuse'' :} Des séries temporelles avec tendances communes peuvent produire des liens spurious.
+\end{itemize}
+
+Les modèles à effets mixtes (modèles hiérarchiques) \citep{Wakefield2009} et les approches spatio-temporelles réduisent les biais liés à la structure des données, mais n’éliminent pas toutes les confusions causales ni les hypothèses fortes.
+
+\subsection{Modèles structuraux, réseaux bayésiens et QRA}
+Pour dépasser ces limites, diverses approches structurales (modèles d’équations structurelles, réseaux bayésiens) ont été proposées \citep{Pearl2009,Shipley2000,Ellis2008}. Elles formalisent la chaîne causale (émission, dispersion, \emph{exposome}, dose-réponse) et intègrent des variables latentes. En parallèle, la \emph{Quantitative Risk Assessment} (QRA) offre un cadre plus complet pour étudier chaque étape (émission, dispersion, \emph{exposome}, dose-réponse, impact sanitaire) \citep{Greenland2002,Cox2005,Shih2006}. Leur principal inconvénient demeure la nécessité de données riches et d’expertise multidisciplinaire, mais elles renforcent la robustesse et la pertinence des conclusions \citep{Greenland2001,Lucas1976}.
+
+
+\section{Identification des lacunes et pistes de recherche}
+Malgré des avancées considérables, plusieurs lacunes subsistent dans la littérature traitant de l’effet de la pollution de l’air sur les maladies respiratoires :
+
+\begin{enumerate}
+	\item \textbf{Variabilité interindividuelle :} Les différences génétiques, épigénétiques ou liées au mode de vie (tabagisme, comorbidités) sont souvent intégrées comme de simples covariables, sans modéliser pleinement leur complexité.
+	\item \textbf{Rôle des pics et des durées d’exposition :} Peu d’études proposent une modélisation fine des épisodes aigus (forte pollution), alors qu’ils peuvent déclencher des réponses inflammatoires non linéaires.
+	\item \textbf{Couplage entre mécanismes biologiques et statistiques :} Les approches PBPK/PD sont prometteuses mais nécessitent des données toxicologiques précises, rarement disponibles à grande échelle. Les modèles purement statistiques risquent, eux, de négliger la saturation de certaines voies biologiques.
+\end{enumerate}
+
+\subsection{Potentiel des modèles de mélange gaussien}
+Une piste de recherche consiste à utiliser des \textbf{modèles de mélange gaussien} (GMM) pour mieux rendre compte de l’hétérogénéité de la population vis-à-vis de la pollution :
+\begin{itemize}
+	\item \textbf{Identification de sous-groupes :} Les individus peuvent être classés selon leur sensibilité, certains étant plus vulnérables.
+	\item \textbf{Modélisation d’effets non linéaires :} Les distributions de l’exposition ou de la réponse peuvent présenter plusieurs modes, correspondant à différents profils de réactivité.
+	\item \textbf{Couplage avec des approches hiérarchiques ou mécanistiques :} Les GMM peuvent se combiner à des réseaux bayésiens ou à des modèles PBPK/PD pour mieux capturer la diversité des mécanismes biologiques.
+\end{itemize}
+
+\section{Conclusion}
+\label{sec:Conclusion}
+La modélisation de l’impact de la pollution de l’air sur les maladies respiratoires a considérablement évolué, depuis les premières approches linéaires sans seuil (LNT) jusqu’aux méthodologies plus avancées en épidémiologie, en toxicologie et en statistique. Les principaux enseignements issus de la littérature actuelle soulignent :
+\begin{itemize}
+	\item Le \textbf{caractère non linéaire}, potentiellement \textbf{à seuil}, de la relation dose-réponse, lié à des processus biologiques (activation de l’inflammasome, saturation de la clairance).
+	\item L’importance des \textbf{pics d’exposition}, qui peuvent exercer un impact disproportionné par rapport à la dose cumulée.
+	\item La \textbf{nécessité de modèles causaux plus riches} (approches mécanistiques, réseaux bayésiens, QRA) pour identifier les leviers d’action et informer au mieux les politiques de santé publique.
+\end{itemize}
+
+De nombreuses pistes de recherche restent ouvertes : prise en compte de la variabilité interindividuelle par des modèles de mélange, modélisation plus fine des épisodes aigus, intégration plus profonde des connaissances biologiques dans les approches statistiques, etc. L’enjeu final demeure de proposer des outils de prédiction et d’aide à la décision fiables, afin de limiter l’impact sanitaire d’une pollution de l’air qui demeure un enjeu majeur de santé publique.
+
+
+
+
+
