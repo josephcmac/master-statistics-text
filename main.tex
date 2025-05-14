@@ -1,5 +1,6 @@
-\documentclass[MSc]{ulthese} % https://gitlab.com/vigou3/ulthese/
-
+\documentclass[MSc, french]{ulthese} % https://gitlab.com/vigou3/ulthese/
+\usepackage{chapterbib}
+\usepackage{natbib}
 \usepackage{amsmath}
 \usepackage{icomma}
 \usepackage{longtable}
@@ -39,7 +40,7 @@
 \programme{Maîtrise en Statistiques}
 \direction{M'Hamed Lajmi Lakhal Chaieb}
 \codirection{Karim Barigou}
-\annee{2024}
+\annee{2025}
 
 \begin{document}
 
@@ -47,27 +48,30 @@
 
 \frontispice                    % production de la page frontispice
 
-\include{resume}                % résumé français
+%\include{resume}                % résumé français
 
-\include{abstract}              % résumé anglais
+%\include{abstract}              % résumé anglais
 
 \cleardoublepage
 
 \tableofcontents                % production de la TdM
 \cleardoublepage
 
-%\listoftables                   % production de la liste des tableaux
-%\cleardoublepage
+\listoftables                   % production de la liste des tableaux
+\cleardoublepage
 
-%\listoffigures                  % production de la liste des figures
-%\cleardoublepage
+\listoffigures                  % production de la liste des figures
+\cleardoublepage
+
+%\include{remerciements}         % remerciements
+%\include{avantpropos}           % avant-propos
 
 \mainmatter                     % corps du document
 
+%\include{introduction}
 \include{stateart}
+\include{ages}
 
-\bibliographystyle{plainnat}
-\bibliography{references}
-
+%\appendix
 
 \end{document}

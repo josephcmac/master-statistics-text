@@ -1,0 +1,381 @@
+\chapter{Répartition des maladies respiratoires chroniques par tranche d'âge}
+
+\section{Introduction}
+Les maladies respiratoires chroniques constituent un enjeu majeur de santé publique. Afin d'étudier leur incidence à l'échelle des États-Unis, nous exploitons des données fournies par l'\emph{Institute for Health Metrics and Evaluation} (IHME) dans le cadre du \textit{Global Burden of Disease} (GBD) pour l'année 2021 \citep{ihme2024gbd2021}.
+
+Dans l'optique de limiter l'influence des valeurs atypiques, nous avons recouru à une régression linéaire robuste basée sur la norme de Huber \citep{andersen2008modern, rousseeuw2019robust, hampel1986influence, rousseeuw1987robust, maronna2006robust, hubert2008high}. Cette régression a été répétée plusieurs fois, dans le but de quantifier l'incertitude associée à l'estimation. Notre intérêt porte à la fois sur l'effet de l'âge (modélisé par un polynôme cubique) et sur l'effet global (incidence pour tous les groupes d'âge confondus), lequel est exprimé sur une échelle de \emph{log-cotes}. Par souci de simplicité, le rôle du sexe est ignoré dans cette étude, mais nous considérons qu’il serait intéressant de l'inclure dans les recherches futures.
+
+\section{Statistiques descriptives}
+Les données portent sur la période allant de 1990 à 2021. Toute année postérieure à 2019 est exclue afin de prévenir les effets potentiels de la pandémie de COVID-19. Les données initiales incluent plusieurs groupes d'âge différenciés par des intervalles de quatre ans ($<5$, $5$–$9$, \dots, $90$–$94$), ainsi qu’un groupe couvrant l'ensemble des classes d'âge. Pour chaque État aux États-Unis, l'incidence (nouveaux cas pour 100 000 habitants) est associée à un intervalle d'incertitude \([\ell, u]\).
+
+Selon l'aperçu des données et des outils GBD 2021 \citep{IHME2024Overview}, chaque estimation est recalculée 500 fois en échantillonnant des distributions plutôt que d'utiliser des valeurs ponctuelles pour les données d'entrée, les transformations de données et le choix du modèle. Pour obtenir l'intervalle d'incertitude à 95 \%, on classe alors 1,000 valeurs obtenues (500 répétitions doublées afin de capturer les échantillonnages internes) de la plus petite à la plus grande, et on retient la 25e et la 975e valeurs.
+
+
+Pour un groupe d'âge donné (proche de $a$ ans), on note $i_a$ l'incidence. Cette dernière est échantillonnée de façon aléatoire et uniforme dans l'intervalle \([\ell, u]\). Nous répétons le processus d’échantillonnage et d’ajustement 100 fois. Afin d’assurer la reproductibilité,
+nous avons fixé le générateur de nombres pseudo-aléatoires à 1729. La figure \ref{fig:newyork-incidence} montre l'incidence par âge pour l'État de New York : l'axe des ordonnées est en échelle logit, chaque point est placé au milieu de sa tranche d'âge et l'incidence est tirée au hasard entre les bornes inférieure et supérieure de l'intervalle d'incertitude selon la loi uniforme. Il y a une observation par tranche d'âge et par année d'étude (1990-2019).
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/incidence_new_york.png}
+	\caption{Taux d'incidence (par unité de population) à New York. L'échelle des ordonnées est logit.}
+	\label{fig:newyork-incidence}
+\end{figure}
+
+La figure~\ref{fig:newyork-incidence} suggère qu’une relation de forme cubique lie le taux d'incidence à l'âge. Le présent chapitre se propose de formaliser, vérifier puis généraliser cette observation à l'ensemble des États des États-Unis.
+
+
+\section{Méthodologie statistique}
+
+\subsection{Modèle de régression robuste}
+l'objectif de cette section est de décrire comment nous relions l'incidence (par tranche d'âge) à l'incidence globale (tous âges confondus), tout en tenant compte de l'effet de l'âge de façon robuste aux observations atypiques (ou \emph{outliers}). 
+
+\subsubsection*{Formulation du modèle}
+Pour chaque groupe d'âge (dont l'âge moyen est $a$), on dispose d'une valeur d'incidence $i_a$, ainsi que d'une incidence globale $i_{\mathrm{globale}}$ (tous âges confondus). Les deux valeurs sont exprimées pour 100\,000 personnes. En notant
+\[
+\text{logit}(x) \;=\; \log\!\Bigl(\frac{x}{100000 - x}\Bigr),
+\]
+nous adoptons le modèle suivant à chaque itération :
+\[
+\text{logit}(i_a) 
+\;=\; \alpha \;+\; 
+\beta_0 \, \text{logit}\bigl(i_{\mathrm{globale}}\bigr) 
+\;+\; \beta_1 \, a \;+\; \beta_2\,a^2 \;+\; \beta_3\,a^3 \;+\; \varepsilon,
+\]
+où $\alpha, \beta_0, \beta_1, \beta_2$ et $\beta_3$ sont les coefficients à estimer. Le choix de la fonction \(\text{logit}\) s'explique par la nature proportionnelle de l'incidence : en transformant l'incidence par \(\log\!\bigl(\frac{i_a}{100000 - i_a}\bigr)\), on évite le problème de valeurs extrêmes (taux extrêmement faibles ou très élevés) et on linearise mieux la relation avec l'âge.
+
+\subsubsection*{Régression robuste avec la perte de Huber}
+Le terme aléatoire \(\varepsilon\) est supposé suivre un modèle «~hubérisé~», c’est-à-dire que la \emph{fonction de perte} utilisée dans l'ajustement du modèle n'est pas simplement la somme des carrés des résidus (comme dans la régression linéaire classique), mais la \emph{perte de Huber}. 
+
+\begin{itemize}
+	\item \textbf{Pourquoi la perte de Huber~?} 
+	
+	La fonction de perte de Huber est une combinaison de la perte quadratique (pour les petits résidus) et de la perte absolue (pour les grands résidus). Concrètement, lorsque l'écart entre la valeur prédite et la valeur observée est faible, le modèle se comporte comme une régression aux moindres carrés. En revanche, si cet écart est trop important (observations atypiques, erreurs de mesure importantes, etc.), la perte de Huber se comporte comme une perte absolue, limitant ainsi l'influence de ces valeurs extrêmes. 
+	
+	\[
+	\rho_{\delta}(r) = 
+	\begin{cases}
+		\frac{1}{2} \, r^2 \quad &\text{si } |r| \leq \delta, \\
+		\delta\,\bigl(|r| - \frac{\delta}{2}\bigr) \quad &\text{sinon,}
+	\end{cases}
+	\]
+	où \(r\) désigne le résidu (écart entre la prédiction et l'observation) et \(\delta\) est un paramètre de coupure. La régression robuste via \texttt{RLM(..., M=HuberT())} utilise par défaut le \emph{tuning constant} $\delta = 1,345$.
+	
+	\item \textbf{Avantage principal~: robustesse} 
+	
+	Grâce à cette approche, les valeurs potentiellement aberrantes sont «~moins pénalisées~», ce qui rend l'estimation des coefficients \((\alpha, \beta_0, \beta_1, \beta_2, \beta_3)\) plus stable et moins sensible aux données atypiques.
+\end{itemize}
+
+\subsubsection*{Échantillonnage pour refléter l'incertitude}
+l'incidence $i_a$ et l'incidence globale $i_{\mathrm{globale}}$ ne sont pas des valeurs fixes, mais plutôt comprises dans un intervalle d'incertitude \([\ell, u]\). Pour chaque itération :
+\begin{enumerate}
+	\item Nous échantillonnons aléatoirement $i_a$ dans \([\ell_a, u_a]\) et $i_{\mathrm{globale}}$ dans \([\ell_{\mathrm{all}}, u_{\mathrm{all}}]\) suivant une loi uniforme. 
+	\item Nous appliquons la transformation logit puis ajustons le modèle via la perte de Huber pour estimer \(\alpha, \beta_0, \beta_1, \beta_2, \beta_3\).
+	\item Nous stockons les coefficients estimés.
+\end{enumerate}
+En répétant cette opération un grand nombre de fois (typiquement plusieurs centaines ou milliers d'itérations), nous tenons compte de la variabilité due à l'estimation du taux d'incidence. Enfin, nous moyennons les coefficients estimés pour obtenir des valeurs centrales robustes, accompagnées d'intervalles de crédibilité (ou de confiance) reflétant la variabilité observée.
+
+Cette procédure fournit ainsi une image plus complète de l'incertitude, contrairement à une seule estimation ponctuelle, tout en restant robuste aux observations extrêmes.
+
+
+\subsection{Tests de normalité des coefficients}
+À l'issue du processus d'itération décrit précédemment, nous obtenons, pour chaque État, un grand nombre d'estimations pour chacun des coefficients du modèle (\(\alpha\), \(\beta_0\), \(\beta_1\), \(\beta_2\), \(\beta_3\)). Afin d'évaluer si ces distributions de coefficients (issues des multiples échantillonnages) peuvent être raisonnablement considérées comme normales, nous recourons au test de Shapiro–Wilk.
+
+Le test de Shapiro–Wilk (souvent abrégé en \emph{SW test}) vérifie la proximité d'un échantillon de données par rapport à une distribution normale de référence. Concrètement, il calcule un indice (\emph{statistique W}) qui compare l'ordre des observations dans l'échantillon à l'ordre théorique de valeurs provenant d'une distribution normale. 
+\begin{itemize}
+	\item l'\emph{hypothèse nulle} (\(H_0\)) stipule que les données sont issues d'une distribution normale.
+	\item Une valeur de \(p\)-value élevée (généralement \(p \geq 0{,}05\)) indique qu’aucune preuve forte ne permet de rejeter l'hypothèse de normalité.
+	\item À l'inverse, si la \(p\)-value est très faible (\(p<0{,}05\)), on conclut que les données s'éloignent significativement d'une distribution normale.
+\end{itemize}
+
+Le test de Shapiro–Wilk est souvent privilégié pour des échantillons de taille faible à modérée. Pour des très grands échantillons, même de faibles déviations par rapport à la normalité peuvent conduire à un rejet de l'hypothèse nulle, ce qui doit être interprété avec prudence.
+
+\subsubsection*{Application à nos coefficients}
+Pour chaque État, nous considérons le nuage de valeurs estimées pour un coefficient donné (par exemple, \(\beta_1\)). Nous appliquons le test de Shapiro–Wilk à cet échantillon :
+\begin{enumerate}
+	\item \textbf{Estimation du coefficient.} Nous collectons les estimations issues des multiples itérations (après les tirages dans \([\ell,u]\) et l'ajustement du modèle robuste). 
+	\item \textbf{Calcul de la statistique du test.} Le test de Shapiro–Wilk produit la statistique \(W\) et la \emph{value p} associée.
+	\item \textbf{Interprétation.} 
+	\begin{itemize}
+		\item \(p \geq 0{,}05\)~: aucune évidence pour rejeter l'hypothèse de normalité. Les estimations du coefficient peuvent être considérées comme approximativement normales.
+		\item \(p < 0{,}05\)~: l'hypothèse de normalité est rejetée au seuil de 5\,\%. Les estimations présentent une ou plusieurs caractéristiques (asymétrie, queues épaisses, etc.) qui s'éloignent d'une distribution normale.
+	\end{itemize}
+\end{enumerate}
+
+Ce diagnostic de normalité permet notamment de vérifier la validité d'hypothèses statistiques ultérieures (par exemple, la construction d'intervalles de confiance ou l'utilisation de tests paramétriques), et de justifier ou non l'emploi de méthodes complémentaires plus robustes. 
+
+
+\section{Résultats}
+
+\subsection{Distributions des valuers p}
+Le tableau~\ref{tab:shapiro} présente les valeurs p du test de Shapiro--Wilk appliqué aux distributions des coefficients robustes (\(\alpha\), \(\beta_0\), \(\beta_1\), \(\beta_2\), \(\beta_3\)) pour chacun des 50~États et le District of Columbia. Chaque ligne du tableau correspond à un État et chaque colonne à l'un des coefficients estimés.
+
+\begin{table}[H]
+	\centering
+	\caption{Résultats du test de Shapiro--Wilk (valeurs p) par État et par coefficient. Une valuer p supérieure à 0,05 indique qu’il n'existe pas de preuve suffisante pour rejeter l'hypothèse de normalité au seuil de 5\,\%. Source : GBD 2021.}
+	\label{tab:shapiro}
+	\scalebox{0.85}{\input{tables/shapiro_table.tex}}
+\end{table}
+
+Bien que ce tableau fournisse le détail complet, il est parfois difficile d'appréhender la distribution globale des valeurs p à travers une simple liste de nombres. Afin de faciliter l'interprétation, nous avons recours à une représentation graphique sous forme de \emph{diagramme en violon}, représentée à la figure~\ref{fig:shapiro-violin}.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/shapiro_violin.png}
+	\caption{Distribution en violon des valeurs p du test de Shapiro--Wilk, par coefficient (50~États et le District of Columbia). 
+		Chaque colonne illustre la \emph{densité} (sur l'axe vertical) des valeurs p pour un coefficient donné. 
+		La largeur du violon reflète la proportion de valeurs p à chaque niveau.}
+	\label{fig:shapiro-violin}
+\end{figure}
+
+\subsubsection*{Interprétation et bonnes pratiques de visualisation}
+\begin{itemize}
+	\item \textbf{Diagrammes en violon}~: 
+	\begin{enumerate}une boîte à moustaches central (indiquant la médiane et les quartiles) avec une courbe de densité symétrique autour de l'axe vertical. 
+		\item Ils permettent de repérer rapidement les zones où les valeurs p sont les plus concentrées et d'identifier d'éventuelles valeurs extrêmes.
+	\end{enumerate}
+	
+	\item \textbf{Seuil critique de 5\,\% (valeur p = 0,05)}~:  
+	\begin{enumerate}
+		\item Si la plupart des valeurs p se situent \emph{au-dessus} de 0,05, on ne rejette pas l'hypothèse de normalité pour la majorité des États.
+		\item Si, au contraire, de nombreuses valeurs p sont \emph{inférieures} à 0,05, cela indique qu’on observe un écart significatif par rapport à la normalité dans plusieurs États.
+	\end{enumerate}
+	
+	\item \textbf{Considérations pratiques}~:
+	\begin{enumerate}
+		\item \emph{Taille d'échantillon}~: Pour des séries de coefficients obtenus après de multiples itérations, la puissance du test de Shapiro--Wilk peut être élevée et conduire à un rejet de l'hypothèse de normalité pour de légères déviations.
+		\item \emph{Variabilité entre les coefficients}~: Une différence notable dans la distribution des valeurs p entre deux coefficients peut suggérer que l'un est estimé de façon plus stable et plus conforme aux hypothèses de normalité que l'autre.
+	\end{enumerate}
+\end{itemize}
+
+Dans l'ensemble, la combinaison du tableau~\ref{tab:shapiro} et du diagramme en violon (figure~\ref{fig:shapiro-violin}) offre une vision à la fois détaillée et synthétique de la normalité (ou non) des distributions de coefficients selon les 50~États et le District of Columbia. Cela permet ensuite de mieux apprécier la robustesse des inférences statistiques associées à chacun de ces coefficients.
+
+
+\subsection{Estimateurs moyens des coefficients}
+
+Au terme de nos multiples itérations, nous disposons, pour chaque État, d'un ensemble d'estimations pour les coefficients du modèle robuste : la constante \(\alpha\), l'effet global \(\beta_0\) (liant l'incidence par tranche d'âge à l'incidence globale), ainsi que les composantes linéaire (\(\beta_1\)), quadratique (\(\beta_2\)) et cubique (\(\beta_3\)) de l'âge. Nous calculons ensuite la moyenne de ces estimations, État par État, afin d'obtenir cinq \emph{estimateurs moyens} (un par coefficient).
+
+\subsubsection*{Distribution globale des coefficients}
+La figure~\ref{fig:violin-coeffs} illustre la distribution de ces coefficients moyens sur l'ensemble des 50~États et le District of Columbia, sous forme de diagrammes en violon. Chaque violon permet de repérer :
+\begin{itemize}
+	\item \textbf{La densité des valeurs}: la largeur du violon renseigne sur la concentration des valeurs autour de certaines zones.
+	\item \textbf{La médiane et les quartiles}: visibles grâce à un marqueur central (ligne horizontale) indiquant la médiane, et parfois des traits indiquant les quartiles.
+	\item \textbf{Les éventuelles valeurs extrêmes ou asymétries}: si la forme du violon est nettement allongée ou décalée, cela peut révéler une plus grande variabilité ou une asymétrie dans les estimations d'un coefficient.
+\end{itemize}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/violin_coefficients.png}
+	\caption{Distribution en violon des coefficients moyens de la régression robuste, tous États confondus. 
+		La largeur de chaque violon indique la densité estimée des valeurs à chaque niveau.}
+	\label{fig:violin-coeffs}
+\end{figure}
+
+\subsubsection*{Tableau récapitulatif par État}
+Pour une analyse plus détaillée, le tableau~\ref{tab:coeff-moy} ci-après répertorie ces coefficients moyens pour chaque État. Cette vue granulaire peut s'avérer pertinente, par exemple, si l'on souhaite comparer directement deux États voisins ou si l'on s'intéresse aux extrêmes (États pour lesquels les coefficients sont particulièrement élevés ou faibles).
+
+\begin{table}[H]
+	\centering
+	\caption{Coefficients moyens du modèle robuste par État. Les valeurs présentées correspondent à la moyenne des estimations obtenues via les multiples itérations d'échantillonnage et d'ajustement (régression robuste). Source : GBD 2021.}
+	\label{tab:coeff-moy}
+	\scalebox{0.85}{\input{tables/age_cubic_USA.tex}}
+\end{table}
+
+\subsection{Visualisation géographique des coefficients}
+La répartition spatiale des coefficients moyens est représentée sur les cartes choroplèthes ci-dessous, selon la palette de couleurs \(\texttt{Viridis}\), qui est \emph{color-blind friendly} et met en évidence les variations de valeur de façon progressive. Chaque carte met l'accent sur l'un des cinq coefficients. 
+
+\vspace{1em}
+\subsubsection{Carte de la constante (\(\alpha\)):}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/map_const.png}
+	\caption{Valeurs moyennes de \(\alpha\) (coefficient constant) par État. 
+		Plus la couleur est foncée, plus la valeur estimée est élevée.}
+\end{figure}
+
+\subsubsection{Carte du coefficient \(\beta_0\) (incidence globale):}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/map_incidence_all.png}
+	\caption{Valeurs moyennes de \(\beta_0\) (log-odds de l'incidence globale) par État. 
+		Les zones plus foncées indiquent un effet global plus prononcé de l'incidence.}
+\end{figure}
+
+\subsubsection{Carte du coefficient \(\beta_1\) (âge):}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/map_age.png}
+	\caption{Valeurs moyennes de \(\beta_1\) (terme linéaire en âge) par État.}
+\end{figure}
+
+\subsubsection{Carte du coefficient \(\beta_2\) (âge au carré):}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/map_age2.png}
+	\caption{Valeurs moyennes de \(\beta_2\) (terme quadratique) par État.}
+\end{figure}
+
+\subsubsection{Carte du coefficient \(\beta_3\) (âge au cube):}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/map_age3.png}
+	\caption{Valeurs moyennes de \(\beta_3\) (terme cubique) par État.}
+\end{figure}
+
+\section{Qualité prédictive du modèle : synthèse par État}
+
+\subsubsection*{Paramètres de la validation croisée}
+La qualité de prédiction a été évaluée par \textbf{validation croisée à $k=10$ plis}
+(\emph{10-fold cross-validation}), avec permutation préalable des données
+(\texttt{shuffle = True}) et \textbf{graine aléatoire fixée à 42} afin de garantir la
+reproductibilité des résultats.\footnote{En pratique, nous utilisons la classe
+	\texttt{KFold} de \textsc{scikit-learn} (\texttt{n\_splits = 10,
+		random\_state = 42}).}  
+Le critère d’évaluation est la
+\textbf{sMAPE}\,(Symmetrical Mean Absolute Percentage Error), définie pour
+chaque observation $(y, \hat y)$ par
+\[
+\mathrm{sMAPE} \;=\;
+\frac{|\,y - \hat y\,|}{\tfrac{|y| + |\hat y|}{2}}\;\times 100~\%.
+\]
+
+Un faible terme $\varepsilon = 10^{-8}$ est ajouté au dénominateur pour éviter toute division par zéro.
+
+Cette métrique, bornée entre $0$ et $100~\%$, est insensible aux valeurs nulles
+et pénalise de façon symétrique les sure- et sous-estimations.  Pour chaque
+État et chaque pli, le modèle robuste à perte de Huber
+est ré-estimé puis évalué, produisant ainsi $10$ valeurs de sMAPE par
+territoire.
+
+\subsubsection*{Statistiques récapitulatives}
+Le tableau~\ref{tab:smape-states} rassemble, pour chacun des 50 États et le
+District of Columbia, trois indicateurs issus de ces $10$ valeurs :
+
+\begin{enumerate}
+	\item le \emph{minimum} : meilleure performance observée ;
+	\item la \emph{moyenne} : performance typique ;
+	\item le \emph{maximum} : pire performance observée.
+\end{enumerate}
+
+Dans l’ensemble, la \textbf{sMAPE moyenne se situe entre 4 \% et 7 \%}, ce qui
+traduit une excellente adéquation du modèle robuste ; même dans les cas les
+plus défavorables la sMAPE reste modérée (\emph{maxima} rarement au-delà de
+10 \%).
+
+\newpage
+\begin{table}[H]
+	\centering
+	\caption{Statistiques sMAPE (minimum, moyenne, maximum) par État.
+		$k = 10$ plis, graine = 42, métrique = sMAPE.
+		Source : GBD 2021.}
+	\label{tab:smape-states}
+	\scalebox{0.85}{\input{tables/table_smape_states.tex}}
+\end{table}
+\newpage
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\textwidth]{images/boxplot_smape_etats.png}
+	\caption{Distribution des sMAPE par pli ($k=10$) pour chaque État.}
+	\label{fig:smape-boxplot}
+\end{figure}
+
+La figure~\ref{fig:smape-boxplot} apporte une vision graphique de la dispersion
+des sMAPE :
+
+\begin{itemize}
+	\item Les boîtes, centrées autour d’une médiane proche de 5 \%, sont
+	généralement compactes, signe d’une variabilité limitée entre plis.  
+	\item Quelques moustaches plus étendues (valeurs hors-quartile) indiquent,
+	pour certains États, une sensibilité accrue au découpage aléatoire des
+	données, sans toutefois atteindre des niveaux d’erreur critiques.  
+\end{itemize}
+
+Avec un schéma de validation croisée rigoureux ($k=10$, graine fixée) et une
+métrique relative stricte (sMAPE), la régression linéaire robuste à perte de
+Huber montre une \textbf{performance stable et élevée} sur l’ensemble des
+États.  Les écarts territoriaux observés restent modestes et n'affectent pas
+les conclusions globales présentées dans les sections suivantes.
+
+\section{Discussion}
+
+Les résultats obtenus éclairent la relation entre l'incidence des maladies respiratoires chroniques et l'âge, tout en révélant des disparités géographiques au sein des États-Unis. Dans cette section, nous discutons de la pertinence de la méthode mise en œuvre, de l'interprétation possible des coefficients, des limites à prendre en compte et des pistes d'amélioration envisageables.
+
+\subsection{Robustesse de l'approche et adéquation du modèle}
+
+Le recours à une régression linéaire robuste fondée sur la perte de Huber s’avère approprié pour atténuer l’influence des valeurs atypiques (\emph{outliers}). Contrairement à une régression aux moindres carrés ordinaires, qui peut être fortement affectée par des observations extrêmes, cette méthode borne l’influence de ces points tout en conservant une bonne efficacité quand les résidus restent «~~normaux~~». Les résultats de la validation croisée (sMAPE généralement inférieure à 10\%) confirment la \emph{bonne performance prédictive} du modèle robuste sur la quasi-totalité des États, malgré les variations inhérentes au découpage aléatoire des données.
+
+En outre, l’échantillonnage répété de l’incidence dans ses intervalles d’incertitude permet de propager la variabilité des données de base jusqu’aux estimations finales, donnant ainsi une \emph{vision réaliste de l’incertitude} des coefficients. Il en résulte une estimation plus nuancée qu’une simple régression ponctuelle.
+
+\subsection{Interprétation des coefficients et disparités régionales}
+
+\subsubsection*{Effet global (\texorpdfstring{$\beta_0$}{β0}) et constante (\texorpdfstring{$\alpha$}{α})}
+
+Le coefficient $\beta_0$ capte l’effet d’\emph{incidence globale} : en moyenne, à mesure que l’incidence globale (tous âges confondus) augmente, l’incidence par tranche d’âge suit une tendance ascendante. Il traduit donc un \emph{niveau de base} (sur échelle logit) auquel viennent s’ajouter les variations spécifiques à l’âge. Les écarts de $\beta_0$ entre les États peuvent s’expliquer par des disparités en matière de pollution atmosphérique, de prévalence de facteurs de risque (p.\~ex. tabagisme, obésité), d’accès aux soins ou encore par des politiques de santé publique différenciées (programmes de dépistage, campagnes de vaccination, etc.).
+
+Le terme $\alpha$ agit comme une constante d’ajustement sur l’échelle logit : certaines régions affichent une $\alpha$ relativement plus élevée, traduisant un taux de base majoré. Les raisons peuvent être multiples : structures démographiques particulières, densité urbaine, conditions socio-économiques, climat, etc.
+
+\subsubsection*{Relation cubique avec l’âge \texorpdfstring{$\beta_1$, $\beta_2$, $\beta_3$}}
+
+Le choix d’un polynôme cubique pour modéliser l’effet de l’âge répond au constat visuel (figure \ref{fig:newyork-incidence}) d’une courbe présentant plusieurs points d’inflexion. Les coefficients $\beta_1$, $\beta_2$ et $\beta_3$ indiquent que la relation entre l’âge et l’incidence n'est pas strictement linéaire: la probabilité de développer une maladie respiratoire chronique peut augmenter rapidement à certains âges, se stabiliser, puis évoluer différemment chez les personnes plus âgées. Ces phénomènes peuvent refléter :
+\begin{itemize}
+	\item Des changements physiologiques liés au vieillissement (affaiblissement du système immunitaire, réduction de la capacité pulmonaire) ;
+	\item Des expositions environnementales ou professionnelles cumulées au fil des ans (p.\~ex. tabagisme, inhalation de poussières) ;
+	\item Des facteurs de comorbidités (maladies cardiovasculaires, diabète, etc.) plus fréquents avec l’âge.
+\end{itemize}
+
+Les \emph{différences} dans les valeurs moyennes de $\beta_1, \beta_2, \beta_3$ entre États peuvent suggérer des contextes régionaux spécifiques (par exemple, dans certains États à forte altitude ou à climat sec, certaines pathologies respiratoires peuvent être moins fréquentes, ou encore la courbe d’incidence peut se décaler vers des âges plus avancés).
+
+\subsection{Qualité prédictive et validation croisée}
+
+La validation croisée à 10 plis (\emph{k-fold cross-validation}), couplée à la sMAPE comme mesure d’erreur, montre une \emph{dispersion relativement faible} des scores (5\% à 7\% en moyenne). Cette performance satisfaisante témoigne de la \emph{bonne généralisation} du modèle, tout en indiquant une \emph{relative stabilité} des estimations à travers divers sous-échantillons.
+
+Il convient néanmoins de noter que la \emph{taille des sous-échantillons}, dans la mesure où les données sont segmentées par tranches d’âge et par États, peut varier. La robustesse du modèle semble particulièrement bénéfique pour gérer des sous-ensembles de données plus réduits ou plus susceptibles de contenir des observations extrêmes (par exemple, certains âges très élevés pour lesquels l’incidence est moins bien estimée).
+
+\subsection{Limites et points d'attention}
+
+Malgré la solidité méthodologique, plusieurs limites méritent d’être soulignées :
+\begin{enumerate}
+	\item \textbf{Exclusion des années postérieures à 2019 :} l’objectif était d’éviter l’effet confondant de la pandémie de COVID-19 sur les taux d’incidence des maladies respiratoires chroniques. Toutefois, cela implique que d’éventuelles \emph{tendances récentes} (p.\~ex. meilleure prévention, détection précoce) sont absentes des données analysées.
+	
+	```
+	\item \textbf{Non prise en compte d’autres covariables :} le modèle se concentre sur la relation âge–incidence, assortie d’une correction via le taux d’incidence global, sans intégrer le sexe, les habitudes de vie (tabagisme, sédentarité) ou la pollution atmosphérique \emph{in situ}. Dès lors, les coefficients captent \emph{indirectement} des effets potentiellement confondants.
+	
+	\item \textbf{Qualité et diversité des sources de données :} les estimations du \emph{GBD} (\emph{Global Burden of Disease}) sont elles-mêmes dérivées d’un ensemble complexe de sources hétérogènes (enquêtes, registres hospitaliers, recensements). Les incertitudes rapportées peuvent sous-estimer ou surestimer la variabilité réelle, suivant les États et les périodes considérées.
+	
+	\item \textbf{Hypothèses distributionnelles :} malgré la robustesse face aux outliers, le modèle suppose un lien \emph{logit}--linéaire (cubique) avec l’âge. Or, dans certaines régions (ou pour certains groupes d’âge), la réalité peut s’éloigner de ce schéma. Les tests de Shapiro--Wilk confirment globalement la normalité approximative des distributions de coefficients, mais de légères déviations peuvent exister dans les États possédant plus d’observations ou, à l’inverse, des échantillons plus restreints.
+	```
+	
+\end{enumerate}
+
+\subsection{Pistes d’amélioration et perspectives}
+
+Plusieurs développements pourraient affiner l’analyse et compléter la compréhension des phénomènes mis en évidence :
+\begin{enumerate}
+	\item \textbf{Ajout de covariables pertinentes :} inclure des facteurs de risque (tabagisme, pollution locale, statut socio-économique) et la distinction \emph{homme/femme} améliorerait la spécificité du modèle. Cette étape requiert toutefois des données complémentaires harmonisées à l’échelle de chaque État.
+	
+	```
+	\item \textbf{Modèles à effets mixtes ou spatio-temporels :} un \emph{modèle hiérarchique} (ou \emph{multilevel}) pourrait introduire des effets aléatoires par État, tout en tenant compte des interrelations spatiales (États voisins, zones urbaines versus rurales). Cela aiderait à mieux cerner la \emph{structure de corrélation} entre territoires et à raffiner l’interprétation cartographique.
+	
+	\item \textbf{Approches non paramétriques :} pour capturer plus librement la relation âge–incidence, on peut envisager des \emph{splines}, des \emph{GAM} (\emph{Generalized Additive Models}) ou des méthodes d’apprentissage automatique. Bien que les modèles paramétriques, comme celui présenté, aient l’avantage d’être plus interprétables, des approches plus flexibles pourraient révéler des motifs plus complexes.
+	
+	\item \textbf{Mise à jour post-pandémie :} il serait pertinent d’examiner la période à partir de 2020 pour évaluer l’impact d’une éventuelle \emph{modification des comportements} (port du masque, distanciation sociale), ainsi que des éventuelles séquelles à long terme chez les patients ayant souffert de COVID-19 (\emph{covid long}).
+	```
+	
+\end{enumerate}
+
+\subsection{Conclusion}
+
+Cette étude confirme qu’un \emph{modèle cubique} en âge, appliqué à l’échelle \emph{logit} du taux d’incidence, décrit de façon satisfaisante la relation entre l’incidence des maladies respiratoires chroniques et l’âge. L’emploi d’une \textbf{régression linéaire robuste} à la perte de Huber, combiné à l’échantillonnage aléatoire des intervalles d’incertitude, offre \emph{une résistance accrue aux valeurs atypiques} et une \emph{meilleure quantification de l’incertitude} par rapport à la régression classique.
+
+Sur le plan \emph{géographique}, les disparités mises en évidence (via les cartes choroplèthes) invitent à explorer les déterminants locaux (environnementaux, socio-économiques, politiques de santé) pour mieux comprendre pourquoi certains États affichent des coefficients plus marqués. Les analyses futures pourraient ainsi s’orienter vers un \emph{modèle enrichi}, intégrant le sexe, la densité de population, la pollution, ou encore l’effet de politiques de santé ciblées, afin de préciser les mécanismes sous-jacents à la dynamique des maladies respiratoires chroniques aux États-Unis.
+
+En somme, la \emph{flexibilité} et la \emph{robustesse} de l’approche présentée permettent de décrire et de comparer la relation âge–incidence à travers des contextes variés. Cette méthode pourrait servir de base à des \emph{analyses comparatives internationales}, ou s’étendre à d’autres pathologies chroniques où l’effet de l’âge est susceptible de présenter des non-linéarités marquées.
+
+
+\bibliographystyle{plainnat}
+\bibliography{references_ages}
